@@ -89,7 +89,6 @@ func (c *Group) DoChan(key string, execute func() (interface{}, error)) <-chan R
 
 // return execute function interface{} and error
 func (c *Group) DoCall(key string, execute func() (interface{}, error)) (value interface{}, err error) {
-
 	v := <-c.DoChan(key, execute)
 	return v.Value, v.Err
 }
