@@ -1,23 +1,24 @@
-// in this example, you need to connection to your redis
+// in this example, you need to connection to your redis-server
 package main
 
 import (
 	"context"
 	"fmt"
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/laxiaohong/singleflight"
-	"time"
 )
 
 var (
-	cli   *redis.Client       = nil
-	group *singleflight.Group = singleflight.NewGroup()
+	cli    *redis.Client       = nil
+	group  *singleflight.Group = singleflight.NewGroup()
+	engine *gin.Engine         = gin.Default()
 )
 
 const (
-	clientNum int    = 1024 * 100
-	key       string = "hello_world"
-	val       string = "你好世界"
+	key string = "hello_world"
+	val string = "你好世界"
 )
 
 func init() {
@@ -39,56 +40,12 @@ func fetchValueFromDataSource(cli *redis.Client,
 	}
 }
 
-// read the value from redis without single-flight
-func fetchValueFromDataSourceDirect(cli *redis.Client, key string) (value interface{}, err error) {
-	return cli.Get(context.TODO(), key).Result()
-}
 func main() {
-	var ch = make(chan int, 100)
-	var t = time.Now()
-	var doneChan = make(chan struct{})
-	for i := 0; i < clientNum; i++ {
-		go func(seq int) {
-			<-group.DoChan(key, fetchValueFromDataSource(cli, key))
-			ch <- seq
-		}(i)
+	pprof.Register(engine)
+	engine.GET("/single_flight", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{"res": <-group.DoChan(fmt.Sprintf("%s", key), fetchValueFromDataSource(cli, key))})
+	})
+	if err := engine.Run(":8080"); err != nil {
+		_ = fmt.Errorf("error %s", err)
 	}
-
-	go func(collector int) {
-		var cnt int
-		for range ch {
-			cnt++
-			if cnt == collector {
-				doneChan <- struct{}{}
-				return
-			}
-		}
-	}(clientNum)
-
-	<-doneChan
-	fmt.Println(time.Since(t))
-	t = time.Now()
-	for i := 0; i < clientNum; i++ {
-		go func(seq int) {
-			_, err := fetchValueFromDataSourceDirect(cli, key)
-			if err != nil {
-				fmt.Println(err)
-			}
-			ch <- seq
-		}(i)
-	}
-
-	go func(collector int) {
-		var cnt int
-		for range ch {
-			cnt++
-			if cnt == collector {
-				doneChan <- struct{}{}
-				return
-			}
-		}
-	}(clientNum)
-	<-doneChan
-	fmt.Println(time.Since(t))
-
 }
