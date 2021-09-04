@@ -46,7 +46,7 @@ type call struct {
 
 // return chan of Result
 // NOTICE: if already have the key, it will not replace with the new execute
-func (c *Group) DoChan(key string, execute func() (interface{}, error)) <-chan Result {
+func (c *Group) doChan(key string, execute func() (interface{}, error)) <-chan Result {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -89,7 +89,7 @@ func (c *Group) DoChan(key string, execute func() (interface{}, error)) <-chan R
 
 // return execute function interface{} and error
 func (c *Group) DoCall(key string, execute func() (interface{}, error)) (value interface{}, err error) {
-	v := <-c.DoChan(key, execute)
+	v := <-c.doChan(key, execute)
 	return v.Value, v.Err
 }
 

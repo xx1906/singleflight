@@ -52,7 +52,7 @@ func TestGroup_DoChan(t *testing.T) {
 	}
 	for _, v := range cases {
 		go func(v TestCase) {
-			val := <-g.DoChan(v.key, v.fn)
+			val := <-g.doChan(v.key, v.fn)
 			outRes, outErr := val.Value, val.Err
 			t.Log(outRes, outErr, v.val, v.err)
 

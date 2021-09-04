@@ -43,7 +43,9 @@ func fetchValueFromDataSource(cli *redis.Client,
 func main() {
 	pprof.Register(engine)
 	engine.GET("/single_flight", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{"res": <-group.DoChan(fmt.Sprintf("%s", key), fetchValueFromDataSource(cli, key))})
+
+		value, err := group.DoCall(fmt.Sprintf("%s", key), fetchValueFromDataSource(cli, key))
+		ctx.JSON(200, gin.H{"res": value, "error": err})
 	})
 	if err := engine.Run(":8080"); err != nil {
 		_ = fmt.Errorf("error %s", err)
