@@ -23,18 +23,22 @@ var (
 	group = NewGroup()
 )
 
-func DoCall(key string, execute func() (interface{}, error)) (res interface{}, err error) {
-	return group.DoCall(key, execute)
+type Group struct {
+	mu     sync.Mutex
+	single map[string]*call
+}
+
+type call struct {
+	result interface{}
+	err    error
+
+	done   chan struct{}
+	refJob int32
 }
 
 type result struct {
 	Value interface{}
 	Err   error
-}
-
-type Group struct {
-	mu     sync.Mutex
-	single map[string]*call
 }
 
 func NewGroup() *Group {
@@ -44,12 +48,14 @@ func NewGroup() *Group {
 	}
 }
 
-type call struct {
-	result interface{}
-	err    error
+// return execute function interface{} and error
+func (c *Group) DoCall(key string, execute func() (interface{}, error)) (value interface{}, err error) {
+	v := <-c.doChan(key, execute)
+	return v.Value, v.Err
+}
 
-	done   chan struct{}
-	refJob int32
+func DoCall(key string, execute func() (interface{}, error)) (res interface{}, err error) {
+	return group.DoCall(key, execute)
 }
 
 // return chan of Result
@@ -93,12 +99,6 @@ func (c *Group) doChan(key string, execute func() (interface{}, error)) <-chan r
 	}()
 
 	return r
-}
-
-// return execute function interface{} and error
-func (c *Group) DoCall(key string, execute func() (interface{}, error)) (value interface{}, err error) {
-	v := <-c.doChan(key, execute)
-	return v.Value, v.Err
 }
 
 // releaseJob, if refJob is zero, deleteJob
