@@ -19,7 +19,7 @@ import (
 	"sync/atomic"
 )
 
-type Result struct {
+type result struct {
 	Value interface{}
 	Err   error
 }
@@ -46,11 +46,11 @@ type call struct {
 
 // return chan of Result
 // NOTICE: if already have the key, it will not replace with the new execute
-func (c *Group) doChan(key string, execute func() (interface{}, error)) <-chan Result {
+func (c *Group) doChan(key string, execute func() (interface{}, error)) <-chan result {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	r := make(chan Result)
+	r := make(chan result)
 	var ca *call
 	var ok bool
 
@@ -79,7 +79,7 @@ func (c *Group) doChan(key string, execute func() (interface{}, error)) <-chan R
 		// waiting for execute return
 		<-ca.done
 		// dispatch the return to the r channel
-		r <- Result{Err: ca.err, Value: ca.result}
+		r <- result{Err: ca.err, Value: ca.result}
 		close(r)
 		c.releaseJob(key, ca) // release this job
 	}()
