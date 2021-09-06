@@ -11,9 +11,8 @@ import (
 )
 
 var (
-	cli    *redis.Client       = nil
-	group  *singleflight.Group = singleflight.NewGroup()
-	engine *gin.Engine         = gin.Default()
+	cli    *redis.Client = nil
+	engine *gin.Engine   = gin.Default()
 )
 
 const (
@@ -44,7 +43,7 @@ func main() {
 	pprof.Register(engine)
 	engine.GET("/single_flight", func(ctx *gin.Context) {
 
-		value, err := group.DoCall(fmt.Sprintf("%s", key), fetchValueFromDataSource(cli, key))
+		value, err := singleflight.DoCall(fmt.Sprintf("%s", key), fetchValueFromDataSource(cli, key))
 		ctx.JSON(200, gin.H{"res": value, "error": err})
 	})
 	if err := engine.Run(":8080"); err != nil {

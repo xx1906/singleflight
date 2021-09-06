@@ -19,6 +19,14 @@ import (
 	"sync/atomic"
 )
 
+var (
+	group = NewGroup()
+)
+
+func DoCall(key string, execute func() (interface{}, error)) (res interface{}, err error) {
+	return group.DoCall(key, execute)
+}
+
 type result struct {
 	Value interface{}
 	Err   error
